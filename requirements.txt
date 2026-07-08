@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+yt-dlp
+openai
+requests
+beautifulsoup4
+python-dotenv
