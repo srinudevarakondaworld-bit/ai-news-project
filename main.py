@@ -177,6 +177,6 @@ async def get_published_videos(db: Session = Depends(get_db)):
 # --- 7. సర్వర్ రన్ ---
 if __name__ == "__main__":
     import uvicorn
-    # ఫ్రంటెండ్ 8000 పోర్ట్‌నే అనుకుంటుంది కాబట్టి, ఇక్కడ 8000 ఖచ్చితంగా పెట్టండి.
-    # ఒకవేళ 8000 బిజీగా ఉంటే, 8000ని వాడే ప్రాసెస్‌ని కిల్ చేయండి.
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
