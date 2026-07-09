@@ -38,10 +38,15 @@ Base.metadata.create_all(bind=engine)
 # --- 2. FastAPI యాప్ ---
 app = FastAPI()
 
-# ✅ Root Endpoint (Render లో యాప్ లైవ్ అని తెలుస్తుంది)
-@app.get("/")
+# ✅ Root Endpoint (HEAD మరియు GET రెండింటినీ సపోర్ట్ చేస్తుంది)
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Hello World! FastAPI is running on Render."}
+
+# ✅ Health Check Endpoint (Render health checks కోసం)
+@app.get("/health")
+async def health():
+    return {"status": "ok"}
 
 # CORS మిడిల్వేర్ ను జోడించండి (ఫ్రంటెండ్ కాల్స్ కోసం)
 app.add_middleware(
