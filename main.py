@@ -36,7 +36,9 @@ class VideoDB(Base):
 Base.metadata.create_all(bind=engine)
 
 # --- 2. FastAPI యాప్ ---
-app = FastAPI()
+app = FastAPI() @app.get("/")
+async def root():
+    return {"message": "Hello World! FastAPI is running on Render."}
 
 # CORS మిడిల్వేర్ ను జోడించండి (ఫ్రంటెండ్ కాల్స్ కోసం)
 app.add_middleware(
