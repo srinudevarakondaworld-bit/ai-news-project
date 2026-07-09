@@ -1,6 +1,6 @@
 import yt_dlp
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware  # CORS కోసం
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
 from dotenv import load_dotenv
@@ -36,7 +36,10 @@ class VideoDB(Base):
 Base.metadata.create_all(bind=engine)
 
 # --- 2. FastAPI యాప్ ---
-app = FastAPI() @app.get("/")
+app = FastAPI()
+
+# ✅ Root Endpoint (Render లో యాప్ లైవ్ అని తెలుస్తుంది)
+@app.get("/")
 async def root():
     return {"message": "Hello World! FastAPI is running on Render."}
 
@@ -89,7 +92,7 @@ def generate_script(news_text: str):
                     "content": f"Here is the news text: {news_text}. Write a 30-second news script."
                 }
             ],
-            model="llama-3.3-70b-versatile",  # తాజా ఉచిత మోడల్
+            model="llama-3.3-70b-versatile",
         )
         return chat_completion.choices[0].message.content
     except Exception as e:
@@ -174,7 +177,7 @@ async def get_published_videos(db: Session = Depends(get_db)):
     videos = db.query(VideoDB).filter(VideoDB.status == "published").all()
     return videos
 
-# --- 7. సర్వర్ రన్ ---
+# --- 7. సర్వర్ రన్ (Render కోసం dynamic port) ---
 if __name__ == "__main__":
     import uvicorn
     import os
