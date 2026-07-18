@@ -35,8 +35,8 @@ class VideoDB(Base):
 # డేటాబేస్ టేబుల్‌ను సృష్టించండి (ఒక్కసారి మాత్రమే)
 Base.metadata.create_all(bind=engine)
 
-# --- 2. FastAPI యాప్ ---
-app = FastAPI()
+# --- 2. FastAPI యాప్ (Swagger UI స్పష్టంగా యాక్టివేట్ చేయబడింది) ---
+app = FastAPI(docs_url="/docs", redoc_url=None)
 
 # ✅ Root Endpoint (HEAD మరియు GET రెండింటినీ సపోర్ట్ చేస్తుంది)
 @app.api_route("/", methods=["GET", "HEAD"])
