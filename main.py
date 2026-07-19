@@ -28,36 +28,32 @@ class VideoDB(Base):
     news_text = Column(String)
     video_path = Column(String, nullable=True)
     script = Column(Text, nullable=True)
-    status = Column(String, default="draft")  # draft, approved, published
+    status = Column(String, default="draft")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
-# డేటాబేస్ టేబుల్‌ను సృష్టించండి (ఒక్కసారి మాత్రమే)
+# డేటాబేస్ టేబుల్‌ను సృష్టించండి
 Base.metadata.create_all(bind=engine)
 
-# --- 2. FastAPI యాప్ (Swagger UI స్పష్టంగా యాక్టివేట్ చేయబడింది) ---
+# --- 2. FastAPI యాప్ ---
 app = FastAPI(docs_url="/docs", redoc_url=None)
 
-# ✅ Root Endpoint (HEAD మరియు GET రెండింటినీ సపోర్ట్ చేస్తుంది)
 @app.api_route("/", methods=["GET", "HEAD"])
 async def root():
     return {"message": "Hello World! FastAPI is running on Render."}
 
-# ✅ Health Check Endpoint (Render health checks కోసం)
 @app.get("/health")
 async def health():
     return {"status": "ok"}
 
-# CORS మిడిల్వేర్ ను జోడించండి (ఫ్రంటెండ్ కాల్స్ కోసం)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # అన్ని డొమైన్లను అనుమతిస్తుంది (డెవలప్మెంట్ కోసం)
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# డేటాబేస్ సెషన్ డిపెండెన్సీ
 def get_db():
     db = SessionLocal()
     try:
@@ -65,13 +61,13 @@ def get_db():
     finally:
         db.close()
 
-# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (Render Secret File ను ఉపయోగిస్తుంది) ---
+# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (format = 'best') ---
 def download_video(url: str):
     ydl_opts = {
-        'format': 'bestvideo+bestaudio/best',
+        'format': 'best',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'cookiefile': 'cookies.txt',  # Render Secret File ను ఉపయోగించండి
+        'cookiefile': 'cookies.txt',
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -104,7 +100,7 @@ def generate_script(news_text: str):
     except Exception as e:
         return f"Error generating script: {e}"
 
-# --- 5. Pydantic మోడల్స్ (API కి డేటా ఇచ్చేందుకు) ---
+# --- 5. Pydantic మోడల్స్ ---
 class VideoRequest(BaseModel):
     url: str
     news_text: str
@@ -120,12 +116,11 @@ class VideoResponse(BaseModel):
 
 # --- 6. API ఎండ్పాయింట్స్ ---
 
-# 6.1 వీడియోను ప్రాసెస్ చేసి, 'draft' స్థితిలో DB లో సేవ్ చేయండి
 @app.post("/process-video/", response_model=VideoResponse)
 async def process_video(request: VideoRequest, db: Session = Depends(get_db)):
     video_path = download_video(request.url)
     script = generate_script(request.news_text)
-    
+
     video_id = str(uuid.uuid4())
     db_video = VideoDB(
         id=video_id,
@@ -138,7 +133,7 @@ async def process_video(request: VideoRequest, db: Session = Depends(get_db)):
     db.add(db_video)
     db.commit()
     db.refresh(db_video)
-    
+
     return VideoResponse(
         id=db_video.id,
         url=db_video.url,
@@ -149,13 +144,11 @@ async def process_video(request: VideoRequest, db: Session = Depends(get_db)):
         created_at=db_video.created_at
     )
 
-# 6.2 'draft' (అప్రూవ్ కోసం వేచి ఉన్న) వీడియోల జాబితా పొందండి
 @app.get("/videos/pending/", response_model=list[VideoResponse])
 async def get_pending_videos(db: Session = Depends(get_db)):
     videos = db.query(VideoDB).filter(VideoDB.status == "draft").all()
     return videos
 
-# 6.3 ఒక వీడియోను 'approve' చేయండి
 @app.post("/videos/{video_id}/approve/")
 async def approve_video(video_id: str, db: Session = Depends(get_db)):
     video = db.query(VideoDB).filter(VideoDB.id == video_id).first()
@@ -165,7 +158,6 @@ async def approve_video(video_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Video approved successfully!", "status": video.status}
 
-# 6.4 'approved' వీడియోను 'publish' చేయండి
 @app.post("/videos/{video_id}/publish/")
 async def publish_video(video_id: str, db: Session = Depends(get_db)):
     video = db.query(VideoDB).filter(VideoDB.id == video_id).first()
@@ -177,13 +169,12 @@ async def publish_video(video_id: str, db: Session = Depends(get_db)):
     db.commit()
     return {"message": "Video published successfully!", "status": video.status}
 
-# 6.5 'published' వీడియోలను మాత్రం ప్రదర్శించండి (Public Feed)
 @app.get("/videos/published/", response_model=list[VideoResponse])
 async def get_published_videos(db: Session = Depends(get_db)):
     videos = db.query(VideoDB).filter(VideoDB.status == "published").all()
     return videos
 
-# --- 7. సర్వర్ రన్ (Render కోసం dynamic port) ---
+# --- 7. సర్వర్ రన్ ---
 if __name__ == "__main__":
     import uvicorn
     import os
