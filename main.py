@@ -65,13 +65,13 @@ def get_db():
     finally:
         db.close()
 
-# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (కుకీలతో) ---
+# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (Chrome కుకీలతో) ---
 def download_video(url: str):
     ydl_opts = {
-        'format': 'best',
+        'format': 'bestvideo+bestaudio/best',  # మెరుగైన ఫార్మాట్ ఎంపిక
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'cookiefile': 'cookies.txt',  # YouTube కుకీల ఫైల్
+        'cookiesfrombrowser': ('chrome',),  # Chrome బ్రౌజర్ నుండి కుకీలు
     }
     try:
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
