@@ -1,12 +1,8 @@
-// lib/api.js - పూర్తి కోడ్
-const API_BASE_URL = "http://127.0.0.1:8000";
+// frontend/lib/api.js
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "https://ai-news-project-3pje.onrender.com";
 
-export async function createVideo(url, newsText) {
-  const res = await fetch(`${API_BASE_URL}/process-video/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url, news_text: newsText }),
-  });
+export async function getPublishedVideos() {
+  const res = await fetch(`${API_BASE_URL}/videos/published/`);
   return res.json();
 }
 
@@ -26,10 +22,5 @@ export async function publishVideo(videoId) {
   const res = await fetch(`${API_BASE_URL}/videos/${videoId}/publish/`, {
     method: "POST",
   });
-  return res.json();
-}
-
-export async function getPublishedVideos() {
-  const res = await fetch(`${API_BASE_URL}/videos/published/`);
   return res.json();
 }
