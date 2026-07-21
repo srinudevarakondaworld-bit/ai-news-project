@@ -61,10 +61,10 @@ def get_db():
     finally:
         db.close()
 
-# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (format = 'best') ---
+# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best') ---
 def download_video(url: str):
     ydl_opts = {
-        'format': 'best',  # అత్యంత అనుకూలమైన ఫార్మాట్
+        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'cookiefile': 'cookies.txt',
