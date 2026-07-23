@@ -1,3 +1,12 @@
-beautifulsoup4
+fastapi
+uvicorn
+yt-dlp
+openai
 requests
+beautifulsoup4
+python-dotenv
+groq
+sqlalchemy
+apscheduler
+feedparser
 lxml
