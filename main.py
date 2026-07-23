@@ -9,6 +9,9 @@ from sqlalchemy import create_engine, Column, String, DateTime, Text
 from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from datetime import datetime
 import uuid
+import feedparser
+import requests
+from apscheduler.schedulers.background import BackgroundScheduler
 
 # .env ఫైల్ ను లోడ్ చేయడం
 load_dotenv()
@@ -61,10 +64,10 @@ def get_db():
     finally:
         db.close()
 
-# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (format = 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best') ---
+# --- 3. వీడియో డౌన్లోడ్ ఫంక్షన్ (format = 'best') ---
 def download_video(url: str):
     ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best',
+        'format': 'best',
         'outtmpl': 'downloads/%(title)s.%(ext)s',
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'cookiefile': 'cookies.txt',
@@ -174,9 +177,48 @@ async def get_published_videos(db: Session = Depends(get_db)):
     videos = db.query(VideoDB).filter(VideoDB.status == "published").all()
     return videos
 
-# --- 7. సర్వర్ రన్ ---
-if __name__ == "__main__":
-    import uvicorn
-    import os
-    port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+# --- 7. ఆటోమేటిక్ న్యూస్ ఫెచ్ (RSS + షెడ్యూలర్) ---
+def auto_fetch_and_process():
+    print("🔄 ఆటోమేటిక్ న్యూస్ ఫెచ్ ప్రారంభం...")
+    try:
+        news_feed = feedparser.parse('https://news.google.com/rss?hl=te&gl=IN&ceid=IN:te')
+        if news_feed.entries:
+            latest_news = news_feed.entries[0]
+            title = latest_news.title
+            article_link = latest_news.link
+            
+            print(f"📰 కనుగొన్న న్యూస్: {title}")
+            
+            # 1. ఆర్టికల్ నుండి ఇమేజ్ మరియు టెక్స్ట్ తీయండి
+            image_url, article_text = fetch_article_image_and_text(article_link)
+            
+            # 2. AI తో రీరైట్ చేయండి
+            rewritten_text = rewrite_and_save_news(article_text if article_text else title)
+            
+            # 3. Draft వీడియో క్రియేట్ చేయండి (డిఫాల్ట్ YouTube URL తో)
+            default_video_url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            db = SessionLocal()
+            try:
+                video_path = download_video(default_video_url)
+                script = rewritten_text if rewritten_text else "No content available"
+                video_id = str(uuid.uuid4())
+                db_video = VideoDB(
+                    id=video_id,
+                    url=default_video_url,
+                    news_text=title,
+                    video_path=video_path,
+                    script=script,
+                    status="draft"
+                )
+                db.add(db_video)
+                db.commit()
+                db.refresh(db_video)
+                print(f"✅ Draft క్రియేట్ అయింది! ID: {video_id}")
+                if image_url:
+                    print(f"🖼️ ఇమేజ్ URL: {image_url}")
+            except Exception as e:
+                print(f"❌ డేటాబేస్ ఎర్రర్: {e}")
+            finally:
+                db.close()
+    except Exception as e:
+        print(f"❌ ఆటోమేటిక్ ఫెచ్ ఎర్రర్: {e}")
